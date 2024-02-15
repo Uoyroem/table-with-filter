@@ -1,8 +1,18 @@
-function getRows() {
-    console.log("getRows")
+async function getRows(fieldUniqueValues) {
+    const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-rows", {
+        method: "POST",
+        body: JSON.stringify({fieldUniqueValues, model: "UnpaidInvoice"})
+    });
+    const json = await response.json();
+    return json.rows;
 }
-function getUniqueValues() {
-    console.log("getUniqueValues")
+async function getUniqueValues(field, fieldUniqueValues) {
+    const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-unique-values", {
+        method: "POST",
+        body: JSON.stringify({field, fieldUniqueValues, model: "UnpaidInvoice"})
+    });
+    const json = await response.json();
+    return json.uniqueValues;
 }
 
 class TableWithFilter {
@@ -21,6 +31,7 @@ class TableWithFilter {
          * @type {HTMLInputElement}
          */
         this.fieldUniqueValues = {};
+        this.rows = null;
         for (const filterMenuOpenButton of tableElement.querySelectorAll("button[data-smt-filter-menu-open-button]")) {
             filterMenuOpenButton.addEventListener("click", event => {
                 if (this.activefilterMenuOpenButton) {
@@ -90,7 +101,7 @@ class TableWithFilter {
     _getElement(selector, required, relative = document, querySelectorType = "querySelector") {
         const element = relative[querySelectorType](selector);
         if (required && querySelectorType === "querySelector" && !element) {
-            throw Error(`Element with selector ${filterMenuSelector} does not exists`);
+            throw Error(`Element with selector ${selector} does not exists`);
         }
         return element;
     }
@@ -146,11 +157,11 @@ class TableWithFilter {
     }
 
     get uniqueValueEmptyElement() {
-        return this._getElement("[data-smt-unique-value-empty]", true, this.filterMenuElement);
+        return this._getElement("[data-smt-unique-value-empty]", false, this.filterMenuElement);
     }
 
     get uniqueValueEmptyCheckbox() {
-        return this._getDataElement("unique-value-empty-checkbox-target", true, this.filterMenuElement);
+        return this._getDataElement("unique-value-empty-checkbox-target", false, this.filterMenuElement);
     }
 
     /**
@@ -158,6 +169,32 @@ class TableWithFilter {
      */
     get uniqueValuesNotFoundElement() {
         return this._getElement("[data-smt-unique-values-not-found]", false, this.filterMenuElement);
+    }
+
+    get uniqueValueTemplate() {
+        return this._getData("unique-value-template", true);
+    }
+
+    get uniqueValuesNotFoundTemplate() {
+        return this._getData("unique-values-not-found-template", true);
+    }
+
+    get uniqueValueEmptyTemplate() {
+        return this._getData("unique-value-empty-template", true);
+    }
+
+    get uniqueValuesLoadingTemplate() {
+        return this._getData("unique-values-loading-template", true);
+    }
+
+    nodeFromString(string) {
+        const div = document.createElement("div");
+        div.innerHTML = string;
+        return div.firstChild;
+    }
+
+    get uniqueValueListElement() {
+        return this._getDataElement("unique-value-list-target", true, this.filterMenuElement);
     }
 
     get uniqueValuesWithType() {
@@ -171,18 +208,22 @@ class TableWithFilter {
             }
         }
         const uniqueValuesWithType = uncheckedUniqueValues.length < checkedUniqueValues.length ? { "exclude": uncheckedUniqueValues } : { "include": checkedUniqueValues };
-        uniqueValuesWithType.empty = this.uniqueValueEmptyCheckbox.checked;
+        const uniqueValueEmptyCheckbox = this.uniqueValueEmptyCheckbox;
+        uniqueValuesWithType.empty = uniqueValueEmptyCheckbox ? uniqueValueEmptyCheckbox.checked : false;
         return uniqueValuesWithType;
     }
 
-    submit() {
+    async submit() {
         this.fieldUniqueValues[this.field] = this.uniqueValuesWithType;
         this.activefilterMenuOpenButton.dataset.uniqueValuesSearchQuery = this.uniqueValueSearchInput.value;
+        this.rows = await this.getRows();
+        console.log(this.rows);
         this.cancel();
     }
 
     cancel() {
         this.hideFilterMenu();
+        this.onFilterMenuClose();
         this.activefilterMenuOpenButton = null;
     }
 
@@ -208,7 +249,10 @@ class TableWithFilter {
 
     filterUniqueValuesWithSearchQuery() {
         const searchQuery = this.uniqueValueSearchInput.value;
-        this.setDisplay(this.uniqueValueEmptyElement, !searchQuery);
+        const uniqueValueEmptyElement = this.uniqueValueEmptyElement;
+        if (uniqueValueEmptyElement) {
+            this.setDisplay(uniqueValueEmptyElement, !searchQuery);
+        }
         this.uniqueValuesSearchQuery = searchQuery;
         let hasMatched = false;
         this.uniqueSearchValueElements.forEach(uniqueSearchValueElement => {
@@ -230,11 +274,12 @@ class TableWithFilter {
 
     checkMatchedUniqueValues(value) {
         const searchQuery = this.uniqueValueSearchInput.value;
-        if (!searchQuery) {
-            this.uniqueValueEmptyCheckbox.checked = value;
+        const uniqueValueEmptyCheckbox = this.uniqueValueEmptyCheckbox;
+        if (!searchQuery && uniqueValueEmptyCheckbox) {
+            uniqueValueEmptyCheckbox.checked = value;
         }
         this.uniqueValueCheckboxes.forEach(uniqueValueCheckbox => {
-            const uniqueSearchValue = this._getData("unique-search-value", true, uniqueValueCheckbox);
+            const uniqueSearchValue = uniqueValueCheckbox.value;
             if (!searchQuery || uniqueSearchValue.toLowerCase().includes(searchQuery.toLowerCase())) {
                 uniqueValueCheckbox.checked = value;
             }
@@ -249,23 +294,42 @@ class TableWithFilter {
         this.checkMatchedUniqueValues(false);
     }
 
-    onFilterMenuOpen() {
+    async onFilterMenuOpen() {
+        const uniqueValueListElement = this.uniqueValueListElement;
+        uniqueValueListElement.innerHTML = "";
+        uniqueValueListElement.append(this.nodeFromString(this.uniqueValuesLoadingTemplate));
+        const uniqueValues = await this.getUniqueValues();
+        uniqueValueListElement.innerHTML = "";
+
+        for (let uniqueValue of uniqueValues) {
+            if (uniqueValue) {
+                uniqueValue = uniqueValue.toString();
+                const uniqueValueTemplate = this.uniqueValueTemplate.replaceAll(/{%\s*unique-value\s*%}/g, uniqueValue.replaceAll('"', "&apos;"));
+                uniqueValueListElement.append(this.nodeFromString(uniqueValueTemplate));
+            } else {
+                uniqueValueListElement.prepend(this.nodeFromString(this.uniqueValueEmptyTemplate));
+            }
+        }
         const filterMenuElement = this.filterMenuElement;
         const uniqueValueSearchInput = this.uniqueValueSearchInput;
-        
         uniqueValueSearchInput.value = this.activefilterMenuOpenButton.dataset.uniqueValuesSearchQuery || "";
         this.filterUniqueValuesWithSearchQuery();
+        const uniqueValueEmptyCheckbox = this.uniqueValueEmptyCheckbox;
         if (this.field in this.fieldUniqueValues) {
             const uniqueValues = this.fieldUniqueValues[this.field];
             for (const uniqueValueCheckbox of this.uniqueValueCheckboxes) {
                 uniqueValueCheckbox.checked = (uniqueValues["include"] || uniqueValues["exclude"]).includes(uniqueValueCheckbox.value) ?  "include" in uniqueValues : "exclude" in uniqueValues;
             }
-            this.uniqueValueEmptyCheckbox.checked = uniqueValues["empty"];
+            if (uniqueValueEmptyCheckbox) {
+                uniqueValueEmptyCheckbox.checked = uniqueValues["empty"];
+            }
         } else {
             for (const uniqueValueCheckbox of this.uniqueValueCheckboxes) {
                 uniqueValueCheckbox.checked = true;
             }
-            this.uniqueValueEmptyCheckbox.checked = true;
+            if (uniqueValueEmptyCheckbox) {
+                uniqueValueEmptyCheckbox.checked = true;
+            }
         }
         if (this.addedEventListenersFilterMenus.has(filterMenuElement)) {
             return;
@@ -280,6 +344,8 @@ class TableWithFilter {
     }
 
     onFilterMenuClose() {
+        const uniqueValueListElement = this.uniqueValueListElement;
+        uniqueValueListElement.innerHTML = "";
     }
 
     showFilterMenu() {
@@ -303,16 +369,16 @@ class TableWithFilter {
 
     /**
      * 
-     * @param {{[x: string]: string[]}} fieldValues 
+     * @param {{[x: string]: {empty: boolean, [x: "exclude" | "include"]: string[]}}} fieldUniqueValues 
      * @returns 
      */
-    async getRows(fieldValues) {
-        let getRowFunction = this._getData("get-rows-function", true);
-        getRowFunction = window[getRowFunction];
-        if (typeof getRowFunction === "function") {
-            throw TypeError(`${getRowFunction} not a function.`)
+    async getRows() {
+        let getRowsFunction = this._getData("get-rows-function", true);
+        getRowsFunction = window[getRowsFunction];
+        if (typeof getRowsFunction !== "function") {
+            throw TypeError(`${getRowsFunction} not a function.`)
         }
-        return await getRowFunction();
+        return await getRowsFunction(this.fieldUniqueValues);
     }
 
     /**
@@ -320,13 +386,13 @@ class TableWithFilter {
      * @param {string} field 
      * @returns 
      */
-    async getUniqueValues(field) {
+    async getUniqueValues() {
         let getUniqueValuesFunction = this._getData("get-unique-values-function", true);
         getUniqueValuesFunction = window[getUniqueValuesFunction];
-        if (typeof getUniqueValuesFunction === "function") {
+        if (typeof getUniqueValuesFunction !== "function") {
             throw TypeError(`${getUniqueValuesFunction} not a function.`)
         }
-        return await getUniqueValuesFunction(field);
+        return await getUniqueValuesFunction(this.field, this.fieldUniqueValues);
     }
 }
 

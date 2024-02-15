@@ -13,12 +13,8 @@
     <input id="unique-value-search-input" type="text">
     <button id="unique-value-select-all">Выбрать всё</button>
     <button id="unique-value-reset">Сбросить</button>
-    <ul id="filter-menu-unique-values">
-        <li data-smt-unique-value-empty><input type="checkbox" data-smt-unique-value-empty value="" id="unique-value-empty-checkbox">(Пустые)</li>
-        <li data-smt-unique-search-value="123"><input type="checkbox" data-smt-unique-search-value="123" value="123" class="unique-value-checkbox">123</li>
-        <li data-smt-unique-search-value="12"><input type="checkbox" data-smt-unique-search-value="12" value="12" class="unique-value-checkbox">12</li>
-        <li data-smt-unique-search-value="125"><input type="checkbox" data-smt-unique-search-value="125" value="125" class="unique-value-checkbox">125</li>
-        <li data-smt-unique-values-not-found>Здесь ничего нет</li>
+    <ul id="filter-menu-unique-values" style="overflow-y: scroll; max-height: 10em;">
+        
     </ul>
     <button type="button" data-smt-filter-menu-cancel-button>Close</button>
     <button type="button" data-smt-filter-menu-submit-button>OK</button>
@@ -28,9 +24,13 @@
     data-smt-unique-value-checkbox-target=".unique-value-checkbox" 
     data-smt-unique-value-empty-checkbox-target="#unique-value-empty-checkbox"
     data-smt-unique-value-search-input-target="#unique-value-search-input"
+    data-smt-unique-value-list-target="#filter-menu-unique-values"
     data-smt-unique-value-select-all-button-target="#unique-value-select-all"
     data-smt-unique-value-reset-button-target="#unique-value-reset"
-    
+    data-smt-unique-value-template='<li data-smt-unique-search-value="{%unique-value%}"><input value="{%unique-value%}" type="checkbox" class="unique-value-checkbox">{%unique-value%}</li>'
+    data-smt-unique-values-not-found-template='<li>Здесь ничего нет</li>'
+    data-smt-unique-value-empty-template='<li data-smt-unique-value-empty><input type="checkbox" data-smt-unique-value-empty value="" id="unique-value-empty-checkbox">(Пустые)</li>'
+    data-smt-unique-values-loading-template='<li>Загрузка...</li>'
     data-smt-filter-menu-target="#filter-menu" 
     data-smt-get-rows-function="getRows" 
     data-smt-get-unique-values-function="getUniqueValues"
