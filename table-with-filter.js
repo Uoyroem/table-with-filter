@@ -3,11 +3,7 @@ class TableWithFilter {
 
     }
 
-    /**
-     * 
-     * @param {{[key: string]: {"empty": boolean, [key: "include" | "exclude"]: any[]}}} fieldUniqueValues 
-     */
-    async getRows(fieldUniqueValues) {
+    async getRows() {
         return [];
     }
 
@@ -17,7 +13,7 @@ class TableWithFilter {
 
     async _getRowsWithLoading() {
         this.onGetRowsLoading();
-        this.rows = await this.getRows(field, fieldUniqueValues);
+        this.rows = await this.getRows();
         this.onGetRowsLoaded();
     }
 
@@ -25,13 +21,7 @@ class TableWithFilter {
 
     }
 
-    /**
-     * 
-     * @param {string} field 
-     * @param {{[key: string]: {[key: "include" | "exclude"]: string[], "empty": boolean}}} fieldUniqueValues 
-     * @returns {string[]}
-     */
-    async getUniqueValues(field, fieldUniqueValues) {
+    async getUniqueValues() {
         return [];
     }
 
@@ -39,9 +29,9 @@ class TableWithFilter {
 
     }
 
-    async _getUniqueValuesWithLoading(field, fieldUniqueValues) {
+    async _getUniqueValuesWithLoading() {
         this.onGetUniqueValuesLoading();
-        this.uniqueValues = await this.getUniqueValues(field, fieldUniqueValues);
+        this.uniqueValues = await this.getUniqueValues();
         this.onGetUniqueValuesLoaded();
     }
 
@@ -86,7 +76,7 @@ class TableWithFilter {
         this.fieldUniqueValues = {};
         this.rows = null;
         this.uniqueValues = null;
-        this._getRowsWithLoading(this.fieldUniqueValues).then(() => this.showRows());
+        this._getRowsWithLoading().then(() => this.showRows());
         for (const filterMenuOpenButton of this.target.querySelectorAll("button[data-smt-filter-menu-open-button]")) {
             filterMenuOpenButton.addEventListener("click", event => {
                 if (this.activefilterMenuOpenButton) {
@@ -271,7 +261,7 @@ class TableWithFilter {
     async submit() {
         this.fieldUniqueValues[this.field] = this.uniqueValuesWithType;
         this.activefilterMenuOpenButton.dataset.uniqueValuesSearchQuery = this.uniqueValueSearchInput.value;
-        await this.getRows(this.fieldUniqueValues);
+        await this.getRows();
         this.showRows();
         this.cancel();
     }
@@ -350,7 +340,7 @@ class TableWithFilter {
     }
 
     async onFilterMenuOpen() {
-        await this._getUniqueValuesWithLoading(this.field, this.fieldUniqueValues);
+        await this._getUniqueValuesWithLoading();
         this.showUniqueValues();
 
         const filterMenuElement = this.filterMenuElement;
@@ -413,19 +403,19 @@ class TableWithFilter {
 
 
 class MyTableWithFilter extends TableWithFilter {
-    async getRows(fieldUniqueValues) {
+    async getRows() {
         const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-rows", {
             method: "POST",
-            body: JSON.stringify({ fieldUniqueValues, model: "UnpaidInvoice" })
+            body: JSON.stringify({ fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
         });
         const json = await response.json();
         return json.rows;
     }
 
-    async getUniqueValues(field, fieldUniqueValues) {
+    async getUniqueValues() {
         const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-unique-values", {
             method: "POST",
-            body: JSON.stringify({ field, fieldUniqueValues, model: "UnpaidInvoice" })
+            body: JSON.stringify({ field: this.field, fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
         });
         const json = await response.json();
         return json.uniqueValues;
