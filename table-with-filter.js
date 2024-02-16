@@ -3,7 +3,7 @@ class TableWithFilter {
 
     }
 
-    async getRows() {
+    async getRows(fieldUniqueValues) {
         return [];
     }
 
@@ -13,7 +13,7 @@ class TableWithFilter {
 
     async _getRowsWithLoading() {
         this.onGetRowsLoading();
-        this.rows = await this.getRows();
+        this._rows = await this.getRows(this.fieldUniqueValues);
         this.onGetRowsLoaded();
     }
 
@@ -21,7 +21,7 @@ class TableWithFilter {
 
     }
 
-    async getUniqueValues() {
+    async getUniqueValues(field, fieldUniqueValues) {
         return [];
     }
 
@@ -31,7 +31,7 @@ class TableWithFilter {
 
     async _getUniqueValuesWithLoading() {
         this.onGetUniqueValuesLoading();
-        this.uniqueValues = await this.getUniqueValues();
+        this._uniqueValues = await this.getUniqueValues(this.field, this.fieldUniqueValues);
         this.onGetUniqueValuesLoaded();
     }
 
@@ -43,7 +43,7 @@ class TableWithFilter {
 
     }
 
-    showUniqueValues() {
+    showUniqueValues(uniqueValues) {
 
     }
 
@@ -51,7 +51,7 @@ class TableWithFilter {
 
     }
 
-    showRows() {
+    showRows(rows) {
 
     }
 
@@ -74,9 +74,9 @@ class TableWithFilter {
          * @type {HTMLInputElement}
          */
         this.fieldUniqueValues = {};
-        this.rows = null;
-        this.uniqueValues = null;
-        this._getRowsWithLoading().then(() => this.showRows());
+        this._rows = null;
+        this._uniqueValues = null;
+        this._getRowsWithLoading().then(() => this.showRows(this._rows));
         for (const filterMenuOpenButton of this.target.querySelectorAll("button[data-smt-filter-menu-open-button]")) {
             filterMenuOpenButton.addEventListener("click", event => {
                 if (this.activefilterMenuOpenButton) {
@@ -261,8 +261,9 @@ class TableWithFilter {
     async submit() {
         this.fieldUniqueValues[this.field] = this.uniqueValuesWithType;
         this.activefilterMenuOpenButton.dataset.uniqueValuesSearchQuery = this.uniqueValueSearchInput.value;
-        await this.getRows();
-        this.showRows();
+        this.clearRows();
+        await this._getRowsWithLoading();
+        this.showRows(this._rows);
         this.cancel();
     }
 
@@ -341,7 +342,7 @@ class TableWithFilter {
 
     async onFilterMenuOpen() {
         await this._getUniqueValuesWithLoading();
-        this.showUniqueValues();
+        this.showUniqueValues(this._uniqueValues);
 
         const filterMenuElement = this.filterMenuElement;
         const uniqueValueSearchInput = this.uniqueValueSearchInput;
@@ -400,64 +401,3 @@ class TableWithFilter {
 
     }
 }
-
-
-class MyTableWithFilter extends TableWithFilter {
-    async getRows() {
-        const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-rows", {
-            method: "POST",
-            body: JSON.stringify({ fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
-        });
-        const json = await response.json();
-        return json.rows;
-    }
-
-    async getUniqueValues() {
-        const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-unique-values", {
-            method: "POST",
-            body: JSON.stringify({ field: this.field, fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
-        });
-        const json = await response.json();
-        return json.uniqueValues;
-    }
-
-    showUniqueValues() {
-        const filterMenuUniqueValues = document.getElementById("filter-menu-unique-values");
-        filterMenuUniqueValues.innerHTML = "";
-        for (const uniqueValue of this.uniqueValues) {
-            const li = document.createElement("li");
-            const checkbox = document.createElement("input");
-            checkbox.setAttribute("")
-        }
-    }
-
-    showRows() {
-        const tbodyRows = document.getElementById("tbody-rows");
-        tbodyRows.innerHTML = "";
-        for (const row of this.rows) {
-            const tr = document.createElement("tr");
-            let td = document.createElement("td");
-            td.textContent = row.number;
-            tr.append(td)
-            td = document.createElement("td");
-            td.textContent = row.date;
-            tr.append(td)
-            td = document.createElement("td");
-            td.textContent = row.approver;
-            tr.append(td)
-            td = document.createElement("td");
-            td.textContent = row.comment;
-            tr.append(td)
-            
-            tbodyRows.append(tr);
-        }
-
-    }
-}
-
-
-let tableWithFilter = null;
-
-document.addEventListener("DOMContentLoaded", function () {
-    tableWithFilter = new MyTableWithFilter("#my-table");
-});

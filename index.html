@@ -9,7 +9,7 @@
         border: 1px solid black;
     }
 </style>
-<div id="filter-menu" style="display: none;">
+<div id="filter-menu" style="display: none; background-color: white;">
     <input id="unique-value-search-input" type="text">
     <button id="unique-value-select-all">Выбрать всё</button>
     <button id="unique-value-reset">Сбросить</button>
@@ -68,3 +68,73 @@
 </table>
 
 <script src="table-with-filter.js"></script>
+<script>
+class MyTableWithFilter extends TableWithFilter {
+    async getRows() {
+        const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-rows", {
+            method: "POST",
+            body: JSON.stringify({ fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
+        });
+        const json = await response.json();
+        return json.rows;
+    }
+
+    async getUniqueValues() {
+        const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-unique-values", {
+            method: "POST",
+            body: JSON.stringify({ field: this.field, fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
+        });
+        const json = await response.json();
+        return json.uniqueValues;
+    }
+
+    showUniqueValues() {
+        const filterMenuUniqueValues = document.getElementById("filter-menu-unique-values");
+        filterMenuUniqueValues.innerHTML = "";
+        for (const uniqueValue of this.uniqueValues) {
+            const li = document.createElement("li");
+            li.setAttribute("data-smt-unique-search-value", uniqueValue.toString());
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.value = uniqueValue;
+            checkbox.classList.add("unique-value-checkbox")
+            li.append(checkbox);
+            li.append(uniqueValue.toString());
+            filterMenuUniqueValues.append(li);
+        }
+    }
+
+    clearRows() {
+        const tbodyRows = document.getElementById("tbody-rows");
+        tbodyRows.innerHTML = "";
+    }
+
+    showRows() {
+        const tbodyRows = document.getElementById("tbody-rows");
+        tbodyRows.innerHTML = "";
+        for (const row of this.rows) {
+            const tr = document.createElement("tr");
+            let td = document.createElement("td");
+            td.textContent = row.number;
+            tr.append(td)
+            td = document.createElement("td");
+            td.textContent = row.date;
+            tr.append(td)
+            td = document.createElement("td");
+            td.textContent = row.approver;
+            tr.append(td)
+            td = document.createElement("td");
+            td.textContent = row.comment;
+            tr.append(td)   
+            tbodyRows.append(tr);
+        }
+    }
+}
+
+
+let tableWithFilter = null;
+
+document.addEventListener("DOMContentLoaded", function () {
+    tableWithFilter = new MyTableWithFilter("#my-table");
+});
+</script>
