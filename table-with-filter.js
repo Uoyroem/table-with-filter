@@ -35,10 +35,6 @@ class TableWithFilter {
         this.onGetUniqueValuesLoaded();
     }
 
-    setUniqueSearchValueAttribute(element) {
-        element.setAttribute("");
-    }
-
     clearUniqueValues() {
 
     }
@@ -401,3 +397,37 @@ class TableWithFilter {
 
     }
 }
+
+class TableWithFilter2 extends EventTarget {
+    constructor(target) {
+        if (typeof target === "string") {
+            this.target = document.querySelector(target);
+        } else {
+            this.target = target;
+        }
+    }
+
+    async onGetRowsLoading() {}
+    async getRows(fieldUniqueValues) {}
+    async onGetRowsLoaded() {}
+    async _getRows(fieldUniqueValues) {
+        await this.onGetRowsLoading();
+        const rows = await this.getRows(fieldUniqueValues);
+        await this.onGetRowsLoaded();
+        return rows;
+    }
+
+    async onGetUniqueValuesLoading() {}
+    async getUniqueValues(field, fieldUniqueValues) {}
+    async onGetUniqueValuesLoaded() {}
+    async _getUniqueValues() {
+        await this.onGetUniqueValuesLoading();
+        const uniqueValues = await this.getUniqueValues();
+        await this.onGetUniqueValuesLoaded();
+        return uniqueValues;
+    }
+
+    async onMenuOpen() {}
+    async onMenuClose() {}
+}
+const tableWithFilter2 = new TableWithFilter2("#my-table");
