@@ -124,11 +124,7 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="table-with-filter.js"></script>
 <script>
-async function wait(ms) {
-    await new Promise((resolve, reject) => {
-        setTimeout(resolve, ms);
-    });
-}
+
 
 async function showRows(fieldUniqueValues) {
     const tbodyRows = $("#tbody-rows");
