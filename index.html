@@ -9,7 +9,7 @@
         border: 1px solid black;
     }
 </style>
-<div id="filter-menu" style="display: none; background-color: white;">
+<!-- <div id="filter-menu" style="display: none; background-color: white;">
     <input id="unique-value-search-input" type="text">
     <button id="unique-value-select-all">Выбрать всё</button>
     <button id="unique-value-reset">Сбросить</button>
@@ -65,69 +65,126 @@
         </tr>
     </thead>
     <tbody id="tbody-rows"></tbody>
-</table>
+</table> -->
 
+<div id="filter-menu" style="display: none; background-color: white; margin-top: 0.25em; box-shadow: 0px 4px 10px black">
+    <input id="unique-value-search-input" type="text">
+    <button id="unique-value-select-all">Выбрать всё</button>
+    <button id="unique-value-reset">Сбросить</button>
+    <ul id="filter-menu-unique-values" style="overflow-y: scroll; max-height: 10em;">
+        
+    </ul>
+    <button type="button" id="cancel-btn">Close</button>
+    <button type="button" id="submit-btn">OK</button>
+</div>
+<table 
+    id="my-table" 
+    data-twf-unique-value-target=".unique-value"
+    data-twf-unique-value-empty-checkbox-target="#unique-value-empty-checkbox"
+    data-twf-unique-value-search-input-target="#unique-value-search-input"
+    data-twf-unique-value-list-target="#filter-menu-unique-values"
+    data-twf-unique-value-select-all-button-target="#unique-value-select-all"
+    data-twf-unique-value-reset-button-target="#unique-value-reset" 
+    data-twf-filter-menu-cancel-button-target="#cancel-btn"
+    data-twf-filter-menu-submit-button-target="#submit-btn"
+    data-twf-show-rows-function="showRows"
+    data-twf-show-unique-values-function="showUniqueValues"
+>
+    <thead>
+        <tr>
+            <th scope="col">
+                ДО
+                <button type="menu" data-twf-filter-menu-target="#filter-menu" data-twf-field="number">
+                    =
+                </button>
+            </th>
+            <th scope="col">
+                Дата
+                <button data-twf-filter-menu-target="#filter-menu" data-twf-field="date">
+                    =
+                </button>
+            </th>
+            <th scope="col">
+                Утвердитель
+                <button data-twf-filter-menu-target="#filter-menu" data-twf-field="approver">
+                    =
+                </button>
+            </th>
+            <th scope="col">
+                Комментарий
+                <button data-twf-filter-menu-target="#filter-menu" data-twf-field="comment">
+                    =
+                </button>
+            </th>
+            <th scope="col">5</th>
+        </tr>
+    </thead>
+    <tbody id="tbody-rows"></tbody>
+</table>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="table-with-filter.js"></script>
 <script>
-class MyTableWithFilter extends TableWithFilter {
-    async getRows() {
-        const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-rows", {
-            method: "POST",
-            body: JSON.stringify({ fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
-        });
+async function wait(ms) {
+    await new Promise((resolve, reject) => {
+        setTimeout(resolve, ms);
+    });
+}
+
+async function showRows(fieldUniqueValues) {
+    const tbodyRows = $("#tbody-rows");
+    tbodyRows.html(`Loading...`);
+    const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-rows", {
+        method: "POST",
+        body: JSON.stringify({ fieldUniqueValues, model: "UnpaidInvoice" })
+    });
+    await wait(700);
+    tbodyRows.empty();
+
+    if (response.ok) {
         const json = await response.json();
-        return json.rows;
+        const rows = json.rows;
+        for (const row of rows) {
+            tbodyRows.append(`
+                <tr>
+                    <td>${row.number}</td>
+                    <td>${row.date}</td>
+                    <td>${row.approver}</td>
+                    <td>${row.comment}</td>
+                    <td></td>
+                </tr>
+            `);
+        }
+    } else {
+        $("#filter-menu-unique-values").html(`Error...`);
     }
+}
 
-    async getUniqueValues() {
-        const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-unique-values", {
-            method: "POST",
-            body: JSON.stringify({ field: this.field, fieldUniqueValues: this.fieldUniqueValues, model: "UnpaidInvoice" })
-        });
+async function showUniqueValues(field, fieldUniqueValues) {
+    const filterMenuUniqueValues = $("#filter-menu-unique-values");
+    filterMenuUniqueValues.empty();
+    filterMenuUniqueValues.html(`Loading...`);
+    const response = await fetch("http://127.0.0.1:8000/p1/finance-module/api-get-model-unique-values", {
+        method: "POST",
+        body: JSON.stringify({ field, fieldUniqueValues, model: "UnpaidInvoice" })
+    });
+    await wait(700);
+
+    filterMenuUniqueValues.empty();
+    if (response.ok) {
         const json = await response.json();
-        return json.uniqueValues;
-    }
-
-    showUniqueValues() {
-        const filterMenuUniqueValues = document.getElementById("filter-menu-unique-values");
-        filterMenuUniqueValues.innerHTML = "";
-        for (const uniqueValue of this.uniqueValues) {
-            const li = document.createElement("li");
-            li.setAttribute("data-smt-unique-search-value", uniqueValue.toString());
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.value = uniqueValue;
-            checkbox.classList.add("unique-value-checkbox")
-            li.append(checkbox);
-            li.append(uniqueValue.toString());
-            filterMenuUniqueValues.append(li);
+        const uniqueValues = json.uniqueValues;
+        let index = 0;
+        for (const uniqueValue of uniqueValues) {
+            filterMenuUniqueValues.append(`
+                <li class="unique-value" data-twf-unique-value="${uniqueValue}">
+                    <input type="checkbox" id="unique-value-checkbox-${index}"/>
+                    <label for="unique-value-checkbox-${index}">${uniqueValue}</label>
+                </li>
+            `);
+            index++;
         }
-    }
-
-    clearRows() {
-        const tbodyRows = document.getElementById("tbody-rows");
-        tbodyRows.innerHTML = "";
-    }
-
-    showRows() {
-        const tbodyRows = document.getElementById("tbody-rows");
-        tbodyRows.innerHTML = "";
-        for (const row of this.rows) {
-            const tr = document.createElement("tr");
-            let td = document.createElement("td");
-            td.textContent = row.number;
-            tr.append(td)
-            td = document.createElement("td");
-            td.textContent = row.date;
-            tr.append(td)
-            td = document.createElement("td");
-            td.textContent = row.approver;
-            tr.append(td)
-            td = document.createElement("td");
-            td.textContent = row.comment;
-            tr.append(td)   
-            tbodyRows.append(tr);
-        }
+    } else {
+        filterMenuUniqueValues.html(`Error...`);
     }
 }
 
@@ -135,6 +192,6 @@ class MyTableWithFilter extends TableWithFilter {
 let tableWithFilter = null;
 
 document.addEventListener("DOMContentLoaded", function () {
-    tableWithFilter = new MyTableWithFilter("#my-table");
+    tableWithFilter = new TableWithFilter("#my-table");
 });
 </script>
