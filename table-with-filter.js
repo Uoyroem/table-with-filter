@@ -1,3 +1,9 @@
+async function wait(ms) {
+    await new Promise((resolve, reject) => {
+        setTimeout(resolve, ms);
+    });
+}
+
 class TableWithFilter {
     constructor(target) {
         this.target = $(target)[0];
