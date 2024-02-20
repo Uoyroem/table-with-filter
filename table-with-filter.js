@@ -90,7 +90,14 @@ class TableWithFilter {
     _setFilterMenuPosititon() {
         const filterMenu = this._getFilterMenuElement();
         const offset = $(this.activeFilterMenuOpenButton).offset();
-        offset.top += $(this.activeFilterMenuOpenButton).outerHeight();
+        if (offset.left + filterMenu.outerWidth() > window.innerWidth) {
+            offset.left -= filterMenu.outerWidth() - $(this.activeFilterMenuOpenButton).outerWidth();
+        } 
+        if (offset.top + filterMenu.outerHeight() > window.innerHeight) {
+            offset.top -= filterMenu.outerHeight();
+        } else {
+            offset.top += $(this.activeFilterMenuOpenButton).outerHeight();
+        }
         filterMenu.css({ position: "absolute", ...offset });
     }
 
