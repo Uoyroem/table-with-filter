@@ -38,6 +38,7 @@ class TableWithFilter {
         this._fieldSearchQuery[this._field] = this._searchQuery;
         this._fieldUniqueValues[this._field] = this._getUniqueValues();
         await this._showRows();
+        $(this.target).trigger("filter-menu-submit");
     }
 
     _getData(name) {
