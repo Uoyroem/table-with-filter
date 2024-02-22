@@ -130,7 +130,7 @@ class TableWithFilter {
     _filterUniqueValues(searchQuery) {
         this._getUniqueValueElements().each(function () {
             const uniqueValue = $(this).data(`twfUniqueValue`);
-            if (!searchQuery || uniqueValue.toString().toLowerCase().includes(searchQuery.toLowerCase())) {
+            if (uniqueValue && (!searchQuery || uniqueValue.toString().toLowerCase().includes(searchQuery.toLowerCase()))) {
                 $(this).css("display", "");
             } else {
                 $(this).css("display", "none");
